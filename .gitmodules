@@ -1,0 +1,3 @@
+[submodule "MapLooper"]
+	path = MapLooper
+	url = https://github.com/mathiasbredholt/MapLooper.git
