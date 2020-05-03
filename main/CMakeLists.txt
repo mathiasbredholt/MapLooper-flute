@@ -3,7 +3,7 @@ idf_component_register(SRCS "main.cpp" "${CMAKE_CURRENT_BINARY_DIR}/Flute/Flute.
                        REQUIRES audio_sal audio_hal esp_dispatcher esp_peripherals display_service libmapper protocol_examples_common MapLooper)
 
 add_custom_command(OUTPUT Flute/Flute.h Flute/Flute.cpp
-     COMMAND faust2esp32 -lib -midi -nvoices 2 ${COMPONENT_DIR}/Flute.dsp
+     COMMAND faust2esp32 -lib ${COMPONENT_DIR}/Flute.dsp
      DEPENDS ${COMPONENT_DIR}/Flute.dsp
      COMMENT "Compiling faust..."
      VERBATIM)
