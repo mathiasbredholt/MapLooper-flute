@@ -44,7 +44,7 @@ class Flute
     private:
     
         esp32audio* fAudio;
-        dsp* fDSP;
+    	dsp* fDSP;
         MapUI* fUI;
     #ifdef MIDICTRL
         esp32_midi* fMIDIHandler;        

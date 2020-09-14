@@ -30,7 +30,7 @@ static const char* TAG = "main";
 Flute* flute;
 
 void updateParam(int id, const std::string& path, float value) {
-  flute->setParamValue(id, path, value);
+  flute->setParamValue(path, value);
 }
 
 extern "C" void app_main() {
@@ -46,20 +46,19 @@ extern "C" void app_main() {
                        AUDIO_HAL_CTRL_START);
   audio_hal_set_volume(board_handle->audio_hal, 90);
 
-  MapLooper::MapLooper* mapLooper = new MapLooper::MapLooper();
-
   int SR = 20000;
   int BS = 512;
 
   flute = new Flute(SR, BS);
   flute->start();
 
-  mapLooper->addSignal("freq", 20.0f, 20000.0f, updateParam);
-  mapLooper->addSignal("bend", 0.0f, 10.0f, updateParam);
-  mapLooper->addSignal("gate", 0.0f, 1.0f, updateParam);
+  MapLooper::MapLooper* mapLooper = new MapLooper::MapLooper();
+
+  // mapLooper->addSignal("freq", 20.0f, 20000.0f, updateParam);
+  // mapLooper->addSignal("bend", 0.0f, 10.0f, updateParam);
+  mapLooper->addSignal("tubeLength", 0.1f, 2.0f, updateParam);
+  mapLooper->addSignal("pressure", 0.0f, 1.0f, updateParam);
   mapLooper->addSignal("mouthPosition", 0.0f, 1.0f, updateParam);
   mapLooper->addSignal("vibratoFreq", 0.0f, 10.0f, updateParam);
   mapLooper->addSignal("vibratoGain", 0.0f, 1.0f, updateParam);
-
-  flute->setParamValue(0, "gate", 1);
 }
