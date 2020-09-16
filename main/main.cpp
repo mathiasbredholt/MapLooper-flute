@@ -14,16 +14,16 @@ main
 
 */
 
+#include "Flute.h"
 #include "MapLooper/MapLooper.hpp"
 #include "board.h"
 #include "es8388.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "esp_wifi.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
 #include "protocol_examples_common.h"
-#include "Flute.h"
-#include "esp_wifi.h"
 
 static const char* TAG = "main";
 
@@ -54,11 +54,15 @@ extern "C" void app_main() {
 
   MapLooper::MapLooper* mapLooper = new MapLooper::MapLooper();
 
-  // mapLooper->addSignal("freq", 20.0f, 20000.0f, updateParam);
-  // mapLooper->addSignal("bend", 0.0f, 10.0f, updateParam);
   mapLooper->addSignal("tubeLength", 0.1f, 2.0f, updateParam);
   mapLooper->addSignal("pressure", 0.0f, 1.0f, updateParam);
   mapLooper->addSignal("mouthPosition", 0.0f, 1.0f, updateParam);
   mapLooper->addSignal("vibratoFreq", 0.0f, 10.0f, updateParam);
   mapLooper->addSignal("vibratoGain", 0.0f, 1.0f, updateParam);
+
+  mapLooper->autoMap();
+
+  for (;;) {
+    vTaskDelay(portMAX_DELAY);
+  }
 }

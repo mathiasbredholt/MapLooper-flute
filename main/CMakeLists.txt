@@ -17,5 +17,3 @@
 idf_component_register(SRCS "main.cpp" "Flute.cpp"
                        INCLUDE_DIRS ./
                        REQUIRES audio_sal audio_hal esp_dispatcher esp_peripherals display_service protocol_examples_common MapLooper)
-
-target_compile_options(${COMPONENT_LIB} PRIVATE -frtti)
