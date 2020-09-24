@@ -20,11 +20,11 @@
 // #include "Flute/Flute.h"
 #include "Flute.h"
 #include "MapLooper/MapLooper.hpp"
+#include "board.h"
+#include "es8388.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
-#include "board.h"
-#include "es8388.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
@@ -32,8 +32,9 @@
 static const char* TAG = "main";
 
 void createFluteSignals(mpr_dev dev, Flute* flute) {
+  float sigMin = 0.0f, sigMax = 1.0f;
   mpr_sig sigPressure = mpr_sig_new(
-      dev, MPR_DIR_IN, "flute/pressure", 1, MPR_FLT, 0, 0, 0, 0,
+      dev, MPR_DIR_IN, "flute/pressure", 1, MPR_FLT, 0, &sigMin, &sigMax, 0,
       [](mpr_sig sig, mpr_sig_evt evt, mpr_id inst, int length, mpr_type type,
          const void* value, mpr_time time) {
         Flute* flute = (Flute*)mpr_obj_get_prop_as_ptr(sig, MPR_PROP_DATA, 0);
@@ -43,7 +44,7 @@ void createFluteSignals(mpr_dev dev, Flute* flute) {
   mpr_obj_set_prop(sigPressure, MPR_PROP_DATA, 0, 1, MPR_PTR, flute, 0);
 
   mpr_sig sigTubeLength = mpr_sig_new(
-      dev, MPR_DIR_IN, "flute/tubeLength", 1, MPR_FLT, 0, 0, 0, 0,
+      dev, MPR_DIR_IN, "flute/tubeLength", 1, MPR_FLT, 0, &sigMin, &sigMax, 0,
       [](mpr_sig sig, mpr_sig_evt evt, mpr_id inst, int length, mpr_type type,
          const void* value, mpr_time time) {
         Flute* flute = (Flute*)mpr_obj_get_prop_as_ptr(sig, MPR_PROP_DATA, 0);
@@ -78,7 +79,7 @@ extern "C" void app_main() {
                        AUDIO_HAL_CTRL_START);
   audio_hal_set_volume(board_handle->audio_hal, 50);
 
-  int SR = 44100;
+  int SR = 20000;
   int BS = 256;
 
   Flute* flute = new Flute(SR, BS);
@@ -90,20 +91,23 @@ extern "C" void app_main() {
 
   createFluteSignals(mapLooper->getMapperDevice(), flute);
 
-  MapLooper::Loop* loop =
-      mapLooper->createLoop("test", MPR_FLT, 1, "slider1", "pressure");
-  loop->mapMixTo("button1");
+  MapLooper::Loop* pressureLoop = mapLooper->createLoop("pressure", MPR_FLT, 1,
+                                                "", "");
+
+  MapLooper::Loop* tubeLengthLoop = mapLooper->createLoop("tubeLength", MPR_FLT, 1,
+                                                "", "");
+  // loop->mapMixTo("button1");
 
   xTaskCreate(
       [](void* userParam) {
         MapLooper::MapLooper* m =
             reinterpret_cast<MapLooper::MapLooper*>(userParam);
         for (;;) {
-          m->update();
-          vTaskDelay(1);
+          m->update(0);
+          vTaskDelay(10);
         }
       },
-      "MapLooper", 16384, mapLooper, 3, nullptr);
+      "MapLooper", 16384, mapLooper, 1, nullptr);
 
   vTaskDelay(portMAX_DELAY);
 }
