@@ -31,29 +31,6 @@
 
 static const char* TAG = "main";
 
-void createFluteSignals(mpr_dev dev, Flute* flute) {
-  float sigMin = 0.0f, sigMax = 1.0f;
-  mpr_sig sigPressure = mpr_sig_new(
-      dev, MPR_DIR_IN, "flute/pressure", 1, MPR_FLT, 0, &sigMin, &sigMax, 0,
-      [](mpr_sig sig, mpr_sig_evt evt, mpr_id inst, int length, mpr_type type,
-         const void* value, mpr_time time) {
-        Flute* flute = (Flute*)mpr_obj_get_prop_as_ptr(sig, MPR_PROP_DATA, 0);
-        flute->setParamValue("pressure", *(float*)value);
-      },
-      MPR_SIG_UPDATE);
-  mpr_obj_set_prop(sigPressure, MPR_PROP_DATA, 0, 1, MPR_PTR, flute, 0);
-
-  mpr_sig sigTubeLength = mpr_sig_new(
-      dev, MPR_DIR_IN, "flute/tubeLength", 1, MPR_FLT, 0, &sigMin, &sigMax, 0,
-      [](mpr_sig sig, mpr_sig_evt evt, mpr_id inst, int length, mpr_type type,
-         const void* value, mpr_time time) {
-        Flute* flute = (Flute*)mpr_obj_get_prop_as_ptr(sig, MPR_PROP_DATA, 0);
-        flute->setParamValue("tubeLength", *(float*)value);
-      },
-      MPR_SIG_UPDATE);
-  mpr_obj_set_prop(sigTubeLength, MPR_PROP_DATA, 0, 1, MPR_PTR, flute, 0);
-}
-
 extern "C" void app_main() {
   // Connect to WiFi
   ESP_ERROR_CHECK(nvs_flash_init());
@@ -65,7 +42,7 @@ extern "C" void app_main() {
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-  wifi_config_t wifi_config = {
+  static wifi_config_t wifi_config = {
       .ap = {"MapLooper", "mappings", .authmode = WIFI_AUTH_WPA2_PSK,
              .max_connection = 4},
   };
@@ -77,7 +54,7 @@ extern "C" void app_main() {
   audio_board_handle_t board_handle = audio_board_init();
   audio_hal_ctrl_codec(board_handle->audio_hal, AUDIO_HAL_CODEC_MODE_BOTH,
                        AUDIO_HAL_CTRL_START);
-  audio_hal_set_volume(board_handle->audio_hal, 50);
+  audio_hal_set_volume(board_handle->audio_hal, 30);
 
   int SR = 20000;
   int BS = 256;
@@ -89,14 +66,42 @@ extern "C" void app_main() {
 
   MapLooper::MapLooper* mapLooper = new MapLooper::MapLooper();
 
-  createFluteSignals(mapLooper->getMapperDevice(), flute);
+  // Create flute signals
+  float sigMin = 0.0f, sigMax = 1.0f;
+  mpr_sig sigPressure = mpr_sig_new(
+      mapLooper->getDevice(), MPR_DIR_IN, "flute/pressure", 1, MPR_FLT, 0, &sigMin, &sigMax, 0,
+      [](mpr_sig sig, mpr_sig_evt evt, mpr_id inst, int length, mpr_type type,
+         const void* value, mpr_time time) {
+        Flute* flute = (Flute*)mpr_obj_get_prop_as_ptr(sig, MPR_PROP_DATA, 0);
+        flute->setParamValue("pressure", *(float*)value);
+      },
+      MPR_SIG_UPDATE);
+  mpr_obj_set_prop(sigPressure, MPR_PROP_DATA, 0, 1, MPR_PTR, flute, 0);
 
-  MapLooper::Loop* pressureLoop = mapLooper->createLoop("pressure", MPR_FLT, 1,
-                                                "", "");
+  mpr_sig sigTubeLength = mpr_sig_new(
+      mapLooper->getDevice(), MPR_DIR_IN, "flute/tubeLength", 1, MPR_FLT, 0, &sigMin, &sigMax, 0,
+      [](mpr_sig sig, mpr_sig_evt evt, mpr_id inst, int length, mpr_type type,
+         const void* value, mpr_time time) {
+        Flute* flute = (Flute*)mpr_obj_get_prop_as_ptr(sig, MPR_PROP_DATA, 0);
+        flute->setParamValue("tubeLength", *(float*)value);
+      },
+      MPR_SIG_UPDATE);
+  mpr_obj_set_prop(sigTubeLength, MPR_PROP_DATA, 0, 1, MPR_PTR, flute, 0);
 
-  MapLooper::Loop* tubeLengthLoop = mapLooper->createLoop("tubeLength", MPR_FLT, 1,
-                                                "", "");
-  // loop->mapMixTo("button1");
+  // mpr_map map = mpr_map_new()
+
+  // MapLooper::Loop* pressureLoop = mapLooper->createLoop("pressure", MPR_FLT,
+  // 1);
+
+  MapLooper::Loop* tubeLengthLoop =
+      mapLooper->createLoop("tubeLength", MPR_FLT, 1);
+
+  tubeLengthLoop->mapInput("out/slider1");
+  tubeLengthLoop->mapOutput("in/slider2");
+  tubeLengthLoop->mapMix("out/button1");
+  tubeLengthLoop->mapModulation("out/slider3");
+
+  mpr_obj_push(mpr_map_new(1, &tubeLengthLoop->sigOut, 1, &sigTubeLength));
 
   xTaskCreate(
       [](void* userParam) {
@@ -107,7 +112,5 @@ extern "C" void app_main() {
           vTaskDelay(10);
         }
       },
-      "MapLooper", 16384, mapLooper, 1, nullptr);
-
-  vTaskDelay(portMAX_DELAY);
+      "MapLooper", 16384, mapLooper, 10, nullptr);
 }
